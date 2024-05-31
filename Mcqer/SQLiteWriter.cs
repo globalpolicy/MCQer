@@ -59,7 +59,7 @@ namespace Mcqer
 			}
 			catch (Exception ex)
 			{
-				_logger.Log(ex);
+				_logger.Log($"Exception occurred when writing {question} to DB: {ex}");
 			}
 			return retval;
 
