@@ -239,7 +239,7 @@ namespace Mcqer
 				question.CorrectOptionNumber = GetIndexFromAlphabetOption(answerNode.GetAttributeValue("value", ""));
 
 				// download option image if any option is an image link
-				NormalizeOptions(ref question);
+				NormalizeImages(ref question);
 
 				questions.Add(question);
 			}
@@ -248,37 +248,39 @@ namespace Mcqer
 		}
 
 		/// <summary>
-		/// Checks if the given Question has any image options. If it does, retrieve the image and use its base64 encoded version in place instead
+		/// Checks if the given Question has any <img> tag in its question or options. If it does, retrieve the image and use its base64 encoded version in place instead
 		/// </summary>
 		/// <param name="question"></param>
-		private void NormalizeOptions(ref Question question)
+		private void NormalizeImages(ref Question question)
 		{
-			question.Option1 = NormalizeOption(question.Option1, out bool isImage1);
-			question.Option2 = NormalizeOption(question.Option2, out bool isImage2);
-			question.Option3 = NormalizeOption(question.Option3, out bool isImage3);
-			question.Option4 = NormalizeOption(question.Option4, out bool isImage4);
-			question.Option5 = NormalizeOption(question.Option5, out bool isImage5);
+			question.QuestionText = NormalizeImage(question.QuestionText, out bool isImage0);
+			question.Option1 = NormalizeImage(question.Option1, out bool isImage1);
+			question.Option2 = NormalizeImage(question.Option2, out bool isImage2);
+			question.Option3 = NormalizeImage(question.Option3, out bool isImage3);
+			question.Option4 = NormalizeImage(question.Option4, out bool isImage4);
+			question.Option5 = NormalizeImage(question.Option5, out bool isImage5);
 
-			if (isImage1 || isImage2 || isImage3 || isImage4 || isImage5)
+			if (isImage0 || isImage1 || isImage2 || isImage3 || isImage4 || isImage5)
 				question.HasImages = true;
 		}
 
-		private string NormalizeOption(string optionText, out bool isImage)
+		private string NormalizeImage(string textWithImage, out bool isImage)
 		{
 			string retval;
 			isImage = false;
 
-			if (string.IsNullOrEmpty(optionText))
+			if (string.IsNullOrEmpty(textWithImage))
 				return "";
 
-			Match match = Regex.Match(optionText, @"img src=""(.+)""");
+			Match match = Regex.Match(textWithImage, @"img src=""(.+)""");
 			if (match.Groups.Count == 2)
 			{
-				retval = GetBase64EncodedImage($"{_rootUrl}{match.Groups[1].Value}");
+				string encodedImage = GetBase64EncodedImage($"{_rootUrl}{match.Groups[1].Value}");
+				retval = textWithImage.Replace(match.Groups[1].Value, $"data:image/png;base64,{encodedImage}");
 				isImage = true;
 			}
 			else
-				retval = optionText;
+				retval = textWithImage;
 
 			return retval;
 		}
