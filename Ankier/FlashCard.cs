@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using HtmlAgilityPack;
+using Microsoft.Data.Sqlite;
 using System.Text;
 
 namespace Ankier
@@ -117,6 +118,14 @@ namespace Ankier
 					string option4Clean = (option4 ?? "").Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
 					string option5Clean = (option5 ?? "").Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
 
+					// normalize HTML elements
+					questionTextClean = NormalizeMathClasses(questionTextClean);
+					option1Clean = NormalizeMathClasses(option1Clean);
+					option2Clean = NormalizeMathClasses(option2Clean);
+					option3Clean = NormalizeMathClasses(option3Clean);
+					option4Clean = NormalizeMathClasses(option4Clean);
+					option5Clean = NormalizeMathClasses(option5Clean);
+
 					StringBuilder flashCardEntity = new StringBuilder();
 
 					// construct the front-side of the card
@@ -177,6 +186,47 @@ namespace Ankier
 
 
 			return sb;
+		}
+
+		/// <summary>
+		/// Normalize HTML content. Eg. align <img> elements in the middle vertically, 
+		/// replace class="root" (that, in IndiaBix, is supposed to be a CSS computed property that loads a background image of a square root for a text) 
+		/// with the appropriate MathML elements, etc.
+		/// </summary>
+		/// <param name="html"></param>
+		/// <returns></returns>
+		private string NormalizeMathClasses(string html)
+		{
+			HtmlDocument htmlDocument = new HtmlDocument();
+			htmlDocument.LoadHtml(html);
+
+			// align the image in the middle in the vertical axis (so that fractions don't look weird)
+			HtmlNodeCollection imgNodes = htmlDocument.DocumentNode.SelectNodes("//img");
+			if (imgNodes != null)
+			{
+				foreach (HtmlNode imgNode in imgNodes)
+				{
+					// ref: https://stackoverflow.com/questions/74463327/how-to-replace-a-value-with-htmlagilitypack
+					imgNode.SetAttributeValue("style", "vertical-align: middle;");
+				}
+			}
+
+
+			// wrap <span class="root">...</span> with <math><msqrt><mi>...</mi></msqrt></math>
+			HtmlNodeCollection squareRootNodes = htmlDocument.DocumentNode.SelectNodes("//span[contains(@class,'root')]");
+			if (squareRootNodes != null)
+			{
+				foreach (HtmlNode squareRootNode in squareRootNodes)
+				{
+					string wrappedSpanRoot = $"<math><msqrt><mi>{squareRootNode.OuterHtml}</mi></msqrt></math>";
+					HtmlNode wrappedNodeNew = HtmlNode.CreateNode(wrappedSpanRoot);
+					// ref: https://stackoverflow.com/questions/6782500/htmlagilitypack-replace-node
+					squareRootNode.ParentNode.ReplaceChild(wrappedNodeNew, squareRootNode);
+				}
+			}
+
+
+			return htmlDocument.DocumentNode.OuterHtml;
 		}
 
 		private string GenerateImgTagIfNeeded(string optionText, bool questionHasImages)
