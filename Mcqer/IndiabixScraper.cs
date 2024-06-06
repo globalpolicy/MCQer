@@ -272,7 +272,7 @@ namespace Mcqer
 			if (string.IsNullOrEmpty(textWithImage))
 				return "";
 
-			Match match = Regex.Match(textWithImage, @"img src=""(.+)""");
+			Match match = Regex.Match(textWithImage, @"img src=""(.+?)""");
 			if (match.Groups.Count == 2)
 			{
 				string encodedImage = GetBase64EncodedImage($"{_rootUrl}{match.Groups[1].Value}");
