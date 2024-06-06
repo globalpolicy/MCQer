@@ -272,15 +272,25 @@ namespace Mcqer
 			if (string.IsNullOrEmpty(textWithImage))
 				return "";
 
-			Match match = Regex.Match(textWithImage, @"img src=""(.+?)""");
-			if (match.Groups.Count == 2)
+			HtmlDocument htmlDocument = new HtmlDocument();
+			htmlDocument.LoadHtml(textWithImage);
+
+			HtmlNodeCollection imgNodes = htmlDocument.DocumentNode.SelectNodes("//img[@src]");
+			if (imgNodes != null)
 			{
-				string encodedImage = GetBase64EncodedImage($"{_rootUrl}{match.Groups[1].Value}");
-				retval = textWithImage.Replace(match.Groups[1].Value, $"data:image/png;base64,{encodedImage}");
-				isImage = true;
+				foreach(HtmlNode imgNode in imgNodes)
+				{
+					string imageLink = imgNode.GetAttributeValue("src", "");
+					if(!string.IsNullOrEmpty(imageLink))
+					{
+						string encodedImage = GetBase64EncodedImage($"{_rootUrl}{imageLink}");
+						imgNode.SetAttributeValue("src", $"data:image/png;base64,{encodedImage}");
+						isImage = true;
+					}
+				}
 			}
-			else
-				retval = textWithImage;
+
+			retval = htmlDocument.DocumentNode.OuterHtml;
 
 			return retval;
 		}
